@@ -12,6 +12,8 @@
  */
 namespace Workerman\Events;
 
+use Workerman\Worker;
+
 /**
  * ev eventloop
  */
@@ -56,14 +58,13 @@ class Ev implements EventInterface
             try {
                 call_user_func($func, $fd);
             } catch (\Exception $e) {
-                echo $e;
+                Worker::log($e);
                 exit(250);
             } catch (\Error $e) {
-                echo $e;
+                Worker::log($e);
                 exit(250);
             }
         };
-
         switch ($flag) {
             case self::EV_SIGNAL:
                 $event                   = new \EvSignal($fd, $callback);
@@ -107,7 +108,7 @@ class Ev implements EventInterface
             case  self::EV_SIGNAL:
                 $fd_key = (int)$fd;
                 if (isset($this->_eventSignal[$fd_key])) {
-                    $this->_allEvents[$fd_key][$flag]->stop();
+                    $this->_eventSignal[$fd_key]->stop();
                     unset($this->_eventSignal[$fd_key]);
                 }
                 break;
@@ -138,10 +139,10 @@ class Ev implements EventInterface
         try {
             call_user_func_array($param[0], $param[1]);
         } catch (\Exception $e) {
-            echo $e;
+            Worker::log($e);
             exit(250);
         } catch (\Error $e) {
-            echo $e;
+            Worker::log($e);
             exit(250);
         }
     }
@@ -167,5 +168,27 @@ class Ev implements EventInterface
     public function loop()
     {
         \Ev::run();
+    }
+
+    /**
+     * Destroy loop.
+     *
+     * @return void
+     */
+    public function destroy()
+    {
+        foreach ($this->_allEvents as $event) {
+            $event->stop();
+        }
+    }
+
+    /**
+     * Get timer count.
+     *
+     * @return integer
+     */
+    public function getTimerCount()
+    {
+        return count($this->_eventTimer);
     }
 }
